@@ -16,10 +16,10 @@ import os
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-import izly
-from client import Client, norm
-from config import AUDIT, CONFIG_DIR, MENU_PRICE_CENTS, write_private
-from errors import ShopError
+from . import izly
+from .client import Client, norm
+from .config import AUDIT, CONFIG_DIR, MENU_PRICE_CENTS, write_private
+from .errors import ShopError
 
 TZ = ZoneInfo("Europe/Paris")
 ORDERS_OPEN_AT = time(13, 0)  # the day before pickup

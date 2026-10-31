@@ -8,8 +8,8 @@ https://rest.izly.fr/api/Izly/WebPayments/<id>/Authorize?token=..., a form with 
 import time
 from urllib.parse import urlparse
 
-from config import secret
-from errors import ShopError, classify_izly
+from .config import secret
+from .errors import ShopError, classify_izly
 
 SHOP_HOST = "crousandgo.crous-strasbourg.fr"
 

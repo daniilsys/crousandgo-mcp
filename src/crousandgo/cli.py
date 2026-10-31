@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
 """crousandgo-mcp command line.
 
-    cli.py login [--manual]      # create/refresh session.json (headless with CROUS_USER/CROUS_PASS)
-    cli.py menus                 # what is published right now
-    cli.py ask [--no-mark]       # 20:00 question text, or nothing (already ordered / already asked)
-    cli.py order DATE PLAT P1 P2 [--service midi|soir] [--yes]
+    crousandgo login [--manual]      # create/refresh session.json (headless with CROUS_USER/CROUS_PASS)
+    crousandgo menus                 # what is published right now
+    crousandgo ask [--no-mark]       # 20:00 question text, or nothing (already ordered / already asked)
+    crousandgo order DATE PLAT P1 P2 [--service midi|soir] [--yes]
                                  # dry run unless --yes (needs CROUSGO_ENABLE_WRITES=1)
-    cli.py watch DATE PLAT P1 P2 [--service ...]
+    crousandgo watch DATE PLAT P1 P2 [--service ...]
                                  # sleep until 13:00 the day before, then order as soon as the menu appears
 """
 import argparse
@@ -15,9 +14,9 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-import auth
-import tools
-from errors import ShopError
+from . import auth
+from . import tools
+from .errors import ShopError
 
 
 def show(res):

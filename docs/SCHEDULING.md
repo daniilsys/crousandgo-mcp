@@ -20,13 +20,12 @@ State: `asked.json` in the config dir records which target dates were already as
 # 1. register the MCP server in ~/.hermes/config.yaml (values must be quoted strings)
 mcp_servers:
   crousandgo:
-    command: /path/to/crousandgo-mcp/.venv/bin/python
-    args: [/path/to/crousandgo-mcp/server.py]
+    command: /path/to/crousandgo-mcp/.venv/bin/crousandgo-mcp
     env: {CROUSGO_ENABLE_WRITES: "1", CROUSGO_MAX_ORDERS: "2"}
     lazy: true
 
 # 2. the script the cron runs (must live in ~/.hermes/scripts/)
-printf '#!/bin/bash\ncd /path/to/crousandgo-mcp && exec .venv/bin/python cli.py ask\n' > ~/.hermes/scripts/crousandgo_ask.sh
+printf '#!/bin/bash\nexec /path/to/crousandgo-mcp/.venv/bin/crousandgo ask\n' > ~/.hermes/scripts/crousandgo_ask.sh
 chmod 755 ~/.hermes/scripts/crousandgo_ask.sh
 
 # 3. a no-agent cron: script stdout is delivered as is, empty stdout is silent

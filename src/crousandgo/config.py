@@ -6,7 +6,7 @@ real env vars win over both). They are never returned by a tool and never logged
 import os
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[2]  # project root (an editable install keeps the .env there)
 CONFIG_DIR = Path(os.environ.get("CROUSGO_CONFIG_DIR", "~/.config/crousandgo")).expanduser()
 
 SHOP = "https://crousandgo.crous-strasbourg.fr"

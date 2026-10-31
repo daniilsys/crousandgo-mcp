@@ -1,17 +1,14 @@
 """Offline tests: no network, no credentials, no real orders."""
 import json
 import os
-import sys
 import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-import tools
-from client import norm, parse_form, pickup_date
-from errors import ShopError, classify_checkout, classify_izly
+from crousandgo import tools
+from crousandgo.client import norm, parse_form, pickup_date
+from crousandgo.errors import classify_checkout, classify_izly
 
 MENU = {"product_id": 1, "name": "Menu étudiant à 1€ du lundi 2 novembre", "service": "midi",
         "pickup_date": "2026-11-02", "price_cents": 100, "in_stock": True,

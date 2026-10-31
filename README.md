@@ -50,7 +50,7 @@ git clone https://github.com/daniilsys/crousandgo-mcp && cd crousandgo-mcp
 ./install.sh
 ```
 
-It creates the virtualenv, installs Chromium for Playwright, links the `crousandgo` command and prints how to register the MCP server in your client (command `.venv/bin/python`, args `server.py`). The agent skill is in `skills/crousandgo-order`. Then fill in `~/.config/crousandgo/.env`:
+It creates the virtualenv, installs the package (`crousandgo` and `crousandgo-mcp` commands) and Chromium for Playwright, and prints how to register the MCP server in your client (command `.venv/bin/crousandgo-mcp`). The agent skill is in `skills/crousandgo-order`. Then fill in `~/.config/crousandgo/.env`:
 
 ```
 CROUS_USER=...        # your Crous & Go login
@@ -94,7 +94,7 @@ Every tool returns `{ok, ...}`. On `ok: false` there is a stable `code` and an E
 ## Safety
 
 - **Dry run by default.** The agent must pass `dry_run=False` explicitly, and the skill only lets it do so after your answer for that exact date.
-- **Kill switch.** `CROUSGO_ENABLE_WRITES` must be `1`. `server.py --read-only` doesn't even register the write tools.
+- **Kill switch.** `CROUSGO_ENABLE_WRITES` must be `1`. `crousandgo-mcp --read-only` doesn't even register the write tools.
 - **Budget.** `CROUSGO_MAX_ORDERS` real orders per server process (default 1).
 - **Price cap.** The menu must cost exactly 1 € and the cart must hold only that item before checkout.
 - **No silent success.** A payment counts only when the WooCommerce order reaches "En cours" or "Terminée". Otherwise the agent gets `payment_not_confirmed` and is told to check `get_orders` before retrying.
@@ -113,21 +113,24 @@ The shop is WordPress + WooCommerce.
 
 ## Run it on a server
 
-Everything is headless. Copy the folder (and the `.env`), run `./install.sh` or the venv steps, then `crousandgo login`. For the "ask every evening, order on reply" setup, see [docs/SCHEDULING.md](docs/SCHEDULING.md). To expose the server over HTTP: `crousandgo serve --http 8766` — there is no auth on that endpoint, keep it on a private network.
+Everything is headless. Copy the folder (and the `.env`), run `./install.sh`, then `crousandgo login`. For the "ask every evening, order on reply" setup, see [docs/SCHEDULING.md](docs/SCHEDULING.md). To expose the server over HTTP: `crousandgo-mcp --http 8766` — there is no auth on that endpoint, keep it on a private network.
 
 ## Repository
 
 ```
-server.py      MCP server (FastMCP, stdio or HTTP)
-tools.py       the agent-facing tools, guards, evening question
-client.py      HTTP client: catalogue, cart, checkout, orders
-auth.py        Chromium login, session.json
-izly.py        Izly payment page
-errors.py      error codes and messages
-cli.py         command line behind bin/crousandgo
+src/crousandgo/
+  server.py    MCP server (FastMCP, stdio or HTTP)      -> crousandgo-mcp
+  cli.py       command line                             -> crousandgo
+  tools.py     the agent-facing tools, guards, evening question
+  client.py    HTTP client: catalogue, cart, checkout, orders
+  auth.py      Chromium login, session.json
+  izly.py      Izly payment page
+  errors.py    error codes and messages
+  config.py    paths, constants, env loading
 skills/        agent skill
 docs/          scheduling
 tests/         offline tests (python -m unittest discover -s tests)
+pyproject.toml
 ```
 
 ## Status

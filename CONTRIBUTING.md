@@ -7,7 +7,7 @@ crousandgo-mcp is meant to stay small and easy to install. Before starting a lar
 - One topic per PR. Don't mix a feature, a refactor and a behaviour change.
 - Don't change existing CLI or tool behaviour without calling it out in the description.
 - Never add anything that sends an order, a payment or a credential without the existing guards (dry run, kill switch, price cap).
-- Run `python -m unittest discover -s tests` before pushing. Tests must not hit the network or need credentials.
+- Install with `pip install -e .`, then run `python -m unittest discover -s tests` before pushing. Tests must not hit the network or need credentials.
 
 ## Commit messages
 

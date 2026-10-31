@@ -13,9 +13,9 @@ from html.parser import HTMLParser
 
 import httpx
 
-import auth
-from config import BASE, MENU_CATEGORY, SESSION, SHOP, STORE_API, ZONE_FONDERIE
-from errors import ShopError, classify_checkout
+from . import auth
+from .config import BASE, MENU_CATEGORY, SESSION, SHOP, STORE_API, ZONE_FONDERIE
+from .errors import ShopError, classify_checkout
 
 MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre",
           "octobre", "novembre", "décembre"]

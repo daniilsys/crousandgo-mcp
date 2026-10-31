@@ -6,8 +6,8 @@
 The state file (WordPress cookies) is rewritten after every successful login. Treat it like
 a password.
 """
-from config import BASE, SESSION, secret, write_private
-from errors import ShopError
+from .config import BASE, SESSION, secret, write_private
+from .errors import ShopError
 import json
 
 LOGIN_URL = BASE + "/mon-compte/"
