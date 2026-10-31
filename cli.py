@@ -36,7 +36,7 @@ def watch(a):
         if res.get("code") not in ("menu_not_open", "menu_not_published", "site_unreachable"):
             return show(res)
         time.sleep(5)
-    return show({"ok": False, "code": "menu_not_published", "message": "Menu jamais apparu pendant 30 min."})
+    return show({"ok": False, "code": "menu_not_published", "message": "The menu never appeared within 30 minutes."})
 
 
 def main():

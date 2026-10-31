@@ -1,5 +1,7 @@
 # Ask every evening, order on reply
 
+The question is in English by default; set `CROUSGO_LANG=fr` for French.
+
 The goal: at 20:00 the agent asks which variant of tomorrow's 1 EUR menu you want, and orders it when you answer.
 
 It is split in two so the part that decides *whether* to message you is plain code, not an LLM:

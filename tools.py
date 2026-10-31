@@ -1,8 +1,8 @@
 """Agent-facing tools for Crous & Go Fonderie.
 
 Plain functions returning small JSON-able dicts. Failures come back as
-{"ok": False, "code": ..., "message": <French text for the user>} instead of exceptions, so the
-agent can relay `message` as-is. `order_menu` is the only write; it is guarded (dry run by
+{"ok": False, "code": ..., "message": <English text for the user>} instead of exceptions, so the
+agent can relay `message` in the user's language. `order_menu` is the only write; it is guarded (dry run by
 default, kill switch, order budget, 1 EUR price cap, audit log).
 
 Env:
@@ -126,6 +126,26 @@ def clear_cart() -> dict:
 
 ASKED = CONFIG_DIR / "asked.json"
 
+# The question is delivered as is by the scheduler, so its language is configurable (CROUSGO_LANG=fr).
+QUESTION = {
+    "en": {
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "title": "🍽️ 1 EUR menu for {day} {date} is available ({services}).",
+        "plats": "Plats:",
+        "sides": "Side options (2): ",
+        "howto": "Reply e.g. \"midi, poulet, fruit, compote\" (one 1 EUR meal only: midi or soir). "
+                 "Ordering is possible until 08:00 on the day. Reply \"rien\" to skip.",
+    },
+    "fr": {
+        "days": ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"],
+        "title": "🍽️ Menu à 1 € du {day} {date} dispo ({services}).",
+        "plats": "Plats :",
+        "sides": "Périphériques (2) : ",
+        "howto": "Réponds par ex. « midi, poulet, fruit, compote » (un seul repas à 1 € : midi ou soir). "
+                 "Commande possible jusqu'à 8h le jour J. « rien » si pas ce coup-ci.",
+    },
+}
+
 
 def evening_question(mark=True, today=None):
     """Text to send the user at 20:00, or None when nothing should be sent.
@@ -148,12 +168,10 @@ def evening_question(mark=True, today=None):
     day = menus[0]
     services = sorted({m["service"] for m in menus if m["pickup_date"] == target})
     d = datetime.fromisoformat(target)
-    jours = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
-    lines = [f"🍽️ Menu à 1 € du {jours[d.weekday()]} {d:%d/%m} dispo ({' / '.join(services)}).",
-             "Plats :"] + [f"{i}. {p.split(',')[0]}" for i, p in enumerate(day["plats"], 1)]
-    lines += ["Périphériques (2) : " + ", ".join(day["peripheriques"]),
-              "Réponds par ex. « midi, poulet, fruit, compote » (un seul repas à 1 € : midi ou soir). "
-              "Commande possible jusqu'à 8h le jour J. « rien » si pas ce coup-ci."]
+    t = QUESTION[os.environ.get("CROUSGO_LANG", "en")]
+    lines = [t["title"].format(day=t["days"][d.weekday()], date=f"{d:%d/%m}", services=" / ".join(services)),
+             t["plats"]] + [f"{i}. {p.split(',')[0]}" for i, p in enumerate(day["plats"], 1)]
+    lines += [t["sides"] + ", ".join(day["peripheriques"]), t["howto"]]
     if mark:
         asked[target] = datetime.now(TZ).isoformat(timespec="minutes")
         write_private(ASKED, json.dumps(asked))
@@ -165,7 +183,7 @@ def evening_question(mark=True, today=None):
 def _pick(options, wanted, what):
     hits = [o for o in options if norm(wanted) in norm(o)]
     if len(hits) != 1:
-        raise ShopError("bad_choice", f"{what} « {wanted} » invalide ou ambigu. Choix possibles : "
+        raise ShopError("bad_choice", f'{what} "{wanted}" is invalid or ambiguous. Possible choices: '
                         + " | ".join(options), options=options)
     return hits[0]
 
@@ -185,51 +203,51 @@ def order_menu(date: str, plat: str, peripherique_1: str, peripherique_2: str, r
         late = datetime.now(TZ) >= opens
         raise ShopError(
             "menu_not_published" if late else "menu_not_open",
-            f"Le menu {service} du {date} n'est pas encore publié"
-            + ("" if late else f" : les commandes ouvrent le {opens:%d/%m à %Hh%M}") + ".",
+            f"The {service} menu for {date} is not published yet"
+            + ("" if late else f": ordering opens on {opens:%Y-%m-%d at %H:%M}") + ".",
             opens_at=opens.isoformat(timespec="minutes"))
     m = menus[0]
     if not m["in_stock"]:
-        raise ShopError("out_of_stock", f"Le menu {service} du {date} est épuisé.")
+        raise ShopError("out_of_stock", f"The {service} menu for {date} is sold out.")
     if m["price_cents"] != MENU_PRICE_CENTS:
-        raise ShopError("unexpected_price", f"Prix inattendu ({m['price_cents'] / 100} €), commande refusée.")
+        raise ShopError("unexpected_price", f"Unexpected price ({m['price_cents'] / 100} EUR), order refused.")
     p = _pick(m["plats"], plat, "Plat")
-    p1 = _pick(m["peripheriques"], peripherique_1, "Périphérique 1")
-    p2 = _pick(m["peripheriques"], peripherique_2, "Périphérique 2")
+    p1 = _pick(m["peripheriques"], peripherique_1, "Side option 1")
+    p2 = _pick(m["peripheriques"], peripherique_2, "Side option 2")
     vid = next((v["id"] for v in m["variations"] if v["plat"] == p), None)
     if vid is None:
-        raise ShopError("bad_choice", "Aucune variation correspondant à ce plat.")
+        raise ShopError("bad_choice", "No variation matches this plat.")
     plan = {"date": date, "service": service, "plat": p, "peripheriques": [p1, p2],
-            "retrait": "Fonderie, 11:45-13:30", "total_eur": 1.0, "paiement": "Izly"}
+            "pickup": "Fonderie, 11:45-13:30", "total_eur": 1.0, "payment": "Izly"}
     if dry_run:
         _audit({"action": "order_menu", "plan": plan, "reason": reason, "dry_run": True})
         return {"ok": True, "dry_run": True, "would": plan}
     if os.environ.get("CROUSGO_ENABLE_WRITES") != "1":
-        raise ShopError("writes_disabled", "Les commandes réelles sont désactivées (CROUSGO_ENABLE_WRITES=1).")
+        raise ShopError("writes_disabled", "Real orders are disabled (set CROUSGO_ENABLE_WRITES=1).")
     if _orders_done >= int(os.environ.get("CROUSGO_MAX_ORDERS", "1")):
-        raise ShopError("budget_exhausted", "Nombre maximum de commandes atteint pour cette session.")
+        raise ShopError("budget_exhausted", "Maximum number of orders reached for this session.")
     c = client()
     try:
         c.clear_cart()  # the cart must contain only this menu
         cart = c.add_menu(m, vid, p, p1, p2)
         if int(cart["totals"]["total_price"]) != MENU_PRICE_CENTS or len(cart["items"]) != 1:
             c.clear_cart()
-            raise ShopError("unexpected_price", "Le panier ne vaut pas 1,00 €, commande annulée.")
+            raise ShopError("unexpected_price", "The cart is not exactly 1.00 EUR, order cancelled.")
         izly_url = c.checkout()
         order = c.orders()[0]
         outcome = izly.pay(izly_url)
         status = _settled_status(c, order["order_id"])
         if status not in PAID_STATUSES:
             raise ShopError("payment_not_confirmed",
-                            f"Le paiement n'est pas confirmé (commande {order['order_id']} : « {status} »). "
-                            "Vérifier le mail Izly / Crous & Go avant de réessayer.", **outcome)
+                            f"Payment not confirmed (order {order['order_id']}: \"{status}\"). "
+                            "Check the Izly / Crous & Go email before retrying.", **outcome)
     except ShopError as e:
         _audit({"action": "order_menu", "plan": plan, "reason": reason, "ok": False, "code": e.code})
         raise
     _orders_done += 1
     _audit({"action": "order_menu", "plan": plan, "reason": reason, "ok": True, "status": status})
     return {"ok": True, "ordered": plan, "order_id": order["order_id"], "status": status,
-            "message": f"Menu {service} du {date} commandé et payé (1,00 €), retrait Fonderie 11h45-13h30."}
+            "message": f"{service.capitalize()} menu for {date} ordered and paid (1.00 EUR), pickup at the Fonderie 11:45-13:30."}
 
 
 READ_TOOLS = [list_menus, get_cart, get_orders]

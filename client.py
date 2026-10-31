@@ -107,7 +107,7 @@ class Client:
                 last = e
                 time.sleep(2 * (i + 1))
         raise ShopError("site_unreachable",
-                        "Le site Crous & Go ne répond pas (il est souvent lent). Réessayer dans un moment.",
+                        "The Crous & Go site is not responding (it is often slow). Try again in a moment.",
                         detail=str(last))
 
     def ensure_session(self):
@@ -120,7 +120,7 @@ class Client:
             self._load_cookies()
             r = self._request("GET", BASE + "/mon-compte/")
             if "woocommerce-MyAccount-navigation" not in r.text:
-                raise ShopError("session_expired", "Impossible de se connecter à Crous & Go.")
+                raise ShopError("session_expired", "Could not log in to Crous & Go.")
         self._checked = True
 
     # ---------- catalogue ----------
@@ -176,11 +176,11 @@ class Client:
             "variation_id": variation_id})
         errs = re.findall(r'<ul class="woocommerce-error".*?</ul>', r.text, re.S)
         if errs:
-            raise ShopError("add_to_cart_failed", f"Le site refuse l'ajout au panier : {text_of(errs[0])}",
+            raise ShopError("add_to_cart_failed", f"The site refused the add to cart: {text_of(errs[0])}",
                             site_message=text_of(errs[0]))
         c = self.cart()
         if not any(i["id"] == variation_id for i in c["items"]):
-            raise ShopError("add_to_cart_failed", "Le menu n'a pas été ajouté au panier (raison inconnue).")
+            raise ShopError("add_to_cart_failed", "The menu was not added to the cart (unknown reason).")
         return c
 
     # ---------- checkout ----------
@@ -191,13 +191,13 @@ class Client:
         page = self._request("GET", BASE + "/commander/")
         form = parse_form(page.text, "checkout")
         if "woocommerce-process-checkout-nonce" not in form:
-            raise ShopError("checkout_failed", "Page de validation introuvable (panier vide ?).")
+            raise ShopError("checkout_failed", "Checkout page not found (empty cart?).")
         form.update({"payment_method": "izlyvl", "terms": "on", "terms-field": "1"})
         r = self._request("POST", BASE + "/?wc-ajax=checkout", data=form)
         try:
             body = r.json()
         except ValueError:
-            raise ShopError("checkout_failed", "Réponse inattendue du site à la validation.", status=r.status_code)
+            raise ShopError("checkout_failed", "Unexpected response from the site at checkout.", status=r.status_code)
         if body.get("result") == "success" and body.get("redirect"):
             return body["redirect"]
         raise classify_checkout(text_of(body.get("messages", "")))

@@ -52,7 +52,7 @@ class ErrorMappingTests(unittest.TestCase):
     def test_izly_insufficient_funds_has_a_user_message(self):
         e = classify_izly("Votre solde est insuffisant pour effectuer ce paiement. Veuillez recharger votre compte.")
         self.assertEqual(e.code, "insufficient_funds")
-        self.assertIn("recharger", e.message)
+        self.assertIn("Top up", e.message)
         self.assertFalse(e.as_result()["ok"])
 
     def test_izly_other_cases(self):
@@ -126,9 +126,18 @@ class EveningQuestionTests(unittest.TestCase):
     def test_asks_once_per_target_date(self):
         tools._client = FakeClient([MENU])
         friday = tools.evening_question(today=date(2026, 10, 30))
-        self.assertIn("lundi 02/11", friday)
+        self.assertIn("Monday 02/11", friday)
         self.assertIsNone(tools.evening_question(today=date(2026, 10, 31)))  # saturday
         self.assertIsNone(tools.evening_question(today=date(2026, 11, 1)))   # sunday
+
+    def test_question_can_be_french(self):
+        import os
+        tools._client = FakeClient([MENU])
+        os.environ["CROUSGO_LANG"] = "fr"
+        try:
+            self.assertIn("lundi 02/11", tools.evening_question(today=date(2026, 10, 30), mark=False))
+        finally:
+            del os.environ["CROUSGO_LANG"]
 
     def test_silent_when_already_ordered(self):
         tools._client = FakeClient([MENU], [{"order_id": 1, "status": "En cours", "pickup_date": "2026-11-02"}])

@@ -24,8 +24,8 @@ def login(manual=False):
     user, pwd = secret("CROUS_USER"), secret("CROUS_PASS")
     if not manual and not (user and pwd):
         raise ShopError("missing_credentials",
-                        "CROUS_USER / CROUS_PASS ne sont pas configurés. Il faut les mettre dans "
-                        "~/.config/crousandgo/.env (voir .env.example).")
+                        "CROUS_USER / CROUS_PASS are not set. Put them in "
+                        "~/.config/crousandgo/.env (see .env.example).")
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not manual)
         kw = {"storage_state": json.loads(SESSION.read_text())} if SESSION.exists() else {}
@@ -48,7 +48,7 @@ def login(manual=False):
                     msg = err.inner_text().strip() if err.count() else ""
                     browser.close()
                     raise ShopError("crous_bad_credentials",
-                                    "Crous & Go a refusé la connexion. Il faut vérifier CROUS_USER / "
-                                    "CROUS_PASS.", site_message=msg)
+                                    "Crous & Go refused the login. Check CROUS_USER / CROUS_PASS.",
+                                    site_message=msg)
         write_private(SESSION, json.dumps(ctx.storage_state()))
         browser.close()

@@ -25,7 +25,7 @@ See what's published, get asked which variant you want, and let the agent order 
 - Lists the menus published on Crous & Go (Fonderie, Mulhouse): date, midi or soir, plats, side options, stock.
 - Orders one for you: cart, checkout, then the Izly payment, with your own account.
 - Asks you every evening which variant you want, once per target date, and says nothing when you already ordered.
-- Tells the agent *why* when something fails, in French and ready to relay: "Solde Izly insuffisant…".
+- Tells the agent *why* when something fails, in plain words it can relay: "Izly balance too low to pay the 1 EUR menu…".
 
 </td>
 <td width="50%" valign="top">
@@ -59,6 +59,7 @@ IZLY_USER=...         # your Izly login
 IZLY_PASS=...
 CROUSGO_ENABLE_WRITES=1   # kill switch: real orders are refused unless this is 1
 CROUSGO_MAX_ORDERS=1      # real orders per server process
+CROUSGO_LANG=en           # language of the evening question: en or fr
 ```
 
 and log in once: `crousandgo login`. The Izly account must be linked to your Crous & Go account (My account, Connexion à Izly) and funded.
@@ -87,7 +88,7 @@ With an agent, just talk to it: *"commande-moi le menu de demain, poulet, fruit 
 | `clear_cart` | empty the cart |
 | `order_menu` | order a menu. `dry_run=True` by default, `reason` is mandatory |
 
-Every tool returns `{ok, ...}`. On `ok: false` there is a stable `code` and a French `message` the agent can relay as is:
+Every tool returns `{ok, ...}`. On `ok: false` there is a stable `code` and an English `message` the agent can relay in your language:
 `insufficient_funds`, `izly_bad_credentials`, `izly_not_linked`, `menu_not_open`, `menu_not_published`, `out_of_stock`, `already_ordered`, `bad_choice`, `unexpected_price`, `payment_not_confirmed`, `session_expired`, `site_unreachable`, `writes_disabled`, `budget_exhausted`.
 
 ## Safety
@@ -122,7 +123,7 @@ tools.py       the agent-facing tools, guards, evening question
 client.py      HTTP client: catalogue, cart, checkout, orders
 auth.py        Chromium login, session.json
 izly.py        Izly payment page
-errors.py      error codes and French messages
+errors.py      error codes and messages
 cli.py         command line behind bin/crousandgo
 skills/        agent skill
 docs/          scheduling

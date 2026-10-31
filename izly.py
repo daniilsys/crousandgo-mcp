@@ -20,8 +20,8 @@ def pay(url, timeout_s=90):
     user, pwd = secret("IZLY_USER"), secret("IZLY_PASS")
     if not (user and pwd):
         raise ShopError("missing_izly_credentials",
-                        "IZLY_USER / IZLY_PASS ne sont pas configurés. Il faut les mettre dans "
-                        "~/.config/crousandgo/.env (voir .env.example).")
+                        "IZLY_USER / IZLY_PASS are not set. Put them in "
+                        "~/.config/crousandgo/.env (see .env.example).")
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
