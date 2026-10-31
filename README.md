@@ -83,7 +83,7 @@ With an agent, just talk to it: *"commande-moi le menu de demain, poulet, fruit 
 |---|---|
 | `list_menus` | published menus, plats, side options, stock, when ordering opens |
 | `get_cart` | current cart |
-| `get_orders` | recent orders and their status; the latest also carry the pickup date |
+| `get_orders` | recent orders with status, what was ordered (plat, side options), pickup date/time/place and an `upcoming` flag |
 | `clear_cart` | empty the cart |
 | `order_menu` | order a menu. `dry_run=True` by default, `reason` is mandatory |
 

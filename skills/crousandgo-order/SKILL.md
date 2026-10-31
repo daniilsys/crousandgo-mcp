@@ -19,6 +19,13 @@ before 08:00 on pickup day.
   failure, call `get_orders` first: a recent order "En cours" or "Terminée" for that pickup date means
   it went through.
 
+## What is my order?
+
+`get_orders` returns each recent order with its menu name, the choices (plat and side options), the
+pickup date, time and place, and `upcoming` (paid and still to collect). To answer "what is my order"
+or "what do I pick up", report the `upcoming` ones: menu, plat, side options, date, time, place.
+Say clearly when there is none.
+
 ## Ordering
 
 1. `list_menus`: pick the date the user means (usually the next open one) and show plats and side options.

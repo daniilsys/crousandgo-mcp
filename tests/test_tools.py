@@ -102,6 +102,19 @@ class OrderGuardTests(unittest.TestCase):
         self.assertEqual(r["code"], "writes_disabled")
 
 
+class GetOrdersTests(unittest.TestCase):
+    def test_marks_only_paid_orders_to_collect_as_upcoming(self):
+        old = tools._client
+        paid = {"order_id": 1, "status": "En cours", "pickup_date": "2999-01-01"}
+        tools._client = FakeClient([], [paid, {**paid, "status": "Annulée"},
+                                        {**paid, "pickup_date": "2000-01-01", "status": "Terminée"}])
+        try:
+            flags = [o["upcoming"] for o in tools.get_orders()["orders"]]
+        finally:
+            tools._client = old
+        self.assertEqual(flags, [True, False, False])
+
+
 class EveningQuestionTests(unittest.TestCase):
     def setUp(self):
         self._client = tools._client

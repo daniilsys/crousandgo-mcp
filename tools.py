@@ -104,9 +104,16 @@ def get_cart() -> dict:
 
 @_safe
 def get_orders() -> dict:
-    """Recent orders with their status (e.g. 'Attente paiement', 'Terminée'); the 5 latest also carry
-    their pickup_date (YYYY-MM-DD)."""
-    return {"ok": True, "orders": client().orders(detail=5)[:10]}
+    """Recent orders with their status (e.g. 'Attente paiement', 'Terminée'). The 5 latest also carry
+    what was ordered (menu name and choices: plat, side options), pickup date (YYYY-MM-DD), time
+    and place, and `upcoming` (true when paid and still to be collected today or later). Use this to
+    answer "what is my order / what do I have to pick up"."""
+    today = datetime.now(TZ).date().isoformat()
+    orders = client().orders(detail=5)[:10]
+    for o in orders:
+        o["upcoming"] = bool(o.get("pickup_date") and o["pickup_date"] >= today
+                             and o["status"] in PAID_STATUSES)
+    return {"ok": True, "orders": orders}
 
 
 @_safe

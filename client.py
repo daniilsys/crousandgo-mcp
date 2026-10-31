@@ -204,6 +204,24 @@ class Client:
 
     # ---------- orders ----------
 
+    def _order_detail(self, order_id):
+        """Items, options and pickup of one order, from its page."""
+        html = self._request("GET", f"{BASE}/mon-compte/view-order/{order_id}/").text
+        items = []
+        for row in re.findall(r'<tr class="woocommerce-table__line-item.*?</tr>', html, re.S):
+            name = re.search(r'product-name">(.*?)(?:<strong class="product-quantity|<ul)', row, re.S)
+            meta = {text_of(k).rstrip(" :"): text_of(v) for k, v in re.findall(
+                r'<strong class="wc-item-meta-label">(.*?)</strong>\s*(.*?)</li>', row, re.S)}
+            items.append({"name": text_of(name.group(1)) if name else None, "meta": meta})
+        meta = items[0]["meta"] if items else {}
+        m = re.match(r"(\d{2})/(\d{2})/(\d{4})$", meta.get("Jour de récupération", ""))
+        return {"pickup_date": f"{m.group(3)}-{m.group(2)}-{m.group(1)}" if m else None,
+                "pickup_time": meta.get("Heure de récupération"),
+                "pickup_place": meta.get("Zone de récupération"),
+                "items": [{"name": i["name"],
+                           "choices": {k: v for k, v in i["meta"].items() if k.startswith("Choix")}}
+                          for i in items]}
+
     def orders(self, detail=0):
         """Recent orders; with detail=N, the first N also get `pickup_date` (ISO) from their page."""
         self.ensure_session()
@@ -217,7 +235,5 @@ class Client:
                         "date": cells.get("Date"), "status": cells.get("État") or cells.get("Statut"),
                         "total": cells.get("Total")})
         for o in out[:detail]:
-            page = text_of(self._request("GET", f"{BASE}/mon-compte/view-order/{o['order_id']}/").text)
-            m = re.search(r"Jour de récupération:?\s*(\d{2})/(\d{2})/(\d{4})", page)
-            o["pickup_date"] = f"{m.group(3)}-{m.group(2)}-{m.group(1)}" if m else None
+            o.update(self._order_detail(o["order_id"]))
         return out
