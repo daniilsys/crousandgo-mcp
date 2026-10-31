@@ -1,5 +1,6 @@
 """Offline tests: no network, no credentials, no real orders."""
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -96,7 +97,6 @@ class OrderGuardTests(unittest.TestCase):
                          "unexpected_price")
 
     def test_real_order_needs_the_kill_switch(self):
-        import os
         os.environ.pop("CROUSGO_ENABLE_WRITES", None)
         r = tools.order_menu("2026-11-02", "poulet", "fruit", "fruit", reason="t", dry_run=False)
         self.assertEqual(r["code"], "writes_disabled")
@@ -118,10 +118,16 @@ class GetOrdersTests(unittest.TestCase):
 class EveningQuestionTests(unittest.TestCase):
     def setUp(self):
         self._client = tools._client
+        self._lang = os.environ.get("CROUSGO_LANG")
+        os.environ["CROUSGO_LANG"] = "en"  # a developer's .env must not change the expected text
         tools.ASKED = Path(tempfile.mkdtemp()) / "asked.json"
 
     def tearDown(self):
         tools._client = self._client
+        if self._lang is None:
+            os.environ.pop("CROUSGO_LANG", None)
+        else:
+            os.environ["CROUSGO_LANG"] = self._lang
 
     def test_asks_once_per_target_date(self):
         tools._client = FakeClient([MENU])
@@ -131,13 +137,9 @@ class EveningQuestionTests(unittest.TestCase):
         self.assertIsNone(tools.evening_question(today=date(2026, 11, 1)))   # sunday
 
     def test_question_can_be_french(self):
-        import os
         tools._client = FakeClient([MENU])
         os.environ["CROUSGO_LANG"] = "fr"
-        try:
-            self.assertIn("lundi 02/11", tools.evening_question(today=date(2026, 10, 30), mark=False))
-        finally:
-            del os.environ["CROUSGO_LANG"]
+        self.assertIn("lundi 02/11", tools.evening_question(today=date(2026, 10, 30), mark=False))
 
     def test_silent_when_already_ordered(self):
         tools._client = FakeClient([MENU], [{"order_id": 1, "status": "En cours", "pickup_date": "2026-11-02"}])
