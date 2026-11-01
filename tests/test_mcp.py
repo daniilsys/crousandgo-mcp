@@ -25,7 +25,7 @@ class MCPTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_write_tools_default_to_dry_run(self):
         listing = await self.tools(False)
-        self.assertEqual({t.name for t in listing}, READ | {"clear_cart", "order_menu"})
+        self.assertEqual({t.name for t in listing}, READ | {"clear_cart", "order_menu", "topup_izly"})
         order = next(t for t in listing if t.name == "order_menu")
         self.assertTrue(order.inputSchema["properties"]["dry_run"]["default"])
         self.assertIn("reason", order.inputSchema["required"])

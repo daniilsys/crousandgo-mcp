@@ -160,3 +160,49 @@ class EveningQuestionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class TopupTests(unittest.TestCase):
+    def setUp(self):
+        self.env = dict(os.environ)
+        os.environ.update({"CROUSGO_ENABLE_WRITES": "1", "IZLY_TOPUP_EUR": "5", "IZLY_TOPUP_CARD": "2958"})
+        tools._topups_done = 0
+
+    def tearDown(self):
+        os.environ.clear(); os.environ.update(self.env)
+
+    def _call(self, **kw):
+        from unittest import mock
+        from crousandgo import izly
+        eff = kw.pop("effect", {"topped_up_eur": 5, "balance_eur": 5.3})
+        with mock.patch.object(tools, "AUDIT", Path(tempfile.mkdtemp()) / "a.jsonl"), \
+             mock.patch.object(izly, "topup", side_effect=[eff] if isinstance(eff, dict) else eff) as top:
+            return tools.topup_izly(reason="t", **kw), top
+
+    def test_dry_run_is_default_and_does_nothing(self):
+        res, top = self._call()
+        self.assertTrue(res["dry_run"])
+        top.assert_not_called()
+
+    def test_real_topup_uses_config(self):
+        res, top = self._call(dry_run=False)
+        self.assertTrue(res["ok"])
+        top.assert_called_once_with(5, "2958", timeout_s=300)
+
+    def test_kill_switch(self):
+        os.environ["CROUSGO_ENABLE_WRITES"] = "0"
+        res, top = self._call(dry_run=False)
+        self.assertEqual(res["code"], "writes_disabled")
+        top.assert_not_called()
+
+    def test_one_topup_per_process(self):
+        self._call(dry_run=False)
+        res, top = self._call(dry_run=False)
+        self.assertEqual(res["code"], "budget_exhausted")
+        top.assert_not_called()
+
+    def test_bank_timeout_is_relayed(self):
+        from crousandgo.errors import ShopError
+        res, _ = self._call(dry_run=False, effect=[ShopError("topup_needs_verification", "no approval")])
+        self.assertEqual(res["code"], "topup_needs_verification")

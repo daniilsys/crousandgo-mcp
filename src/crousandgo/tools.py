@@ -9,6 +9,11 @@ Env:
   CROUSGO_ENABLE_WRITES=1   real orders are refused unless set (kill switch)
   CROUSGO_MAX_ORDERS=1      max real orders per server process
   CROUSGO_AUDIT=<path>      JSONL audit log (default ~/.config/crousandgo/audit.jsonl)
+  IZLY_TOPUP_EUR=5          amount of a topup_izly top-up: 5, 10, 15 or 20
+  IZLY_TOPUP_WAIT_S=300     how long it waits for the user's approval at their bank
+  CROUSGO_MAX_TOPUPS=1      max real top-ups per server process
+  IZLY_TOPUP_CARD=<text>    saved card to use, matched against its label in Izly's list
+                            (e.g. 2958); default: the first one
 """
 import functools
 import json
@@ -18,7 +23,7 @@ from zoneinfo import ZoneInfo
 
 from . import izly
 from .client import Client, norm
-from .config import AUDIT, CONFIG_DIR, MENU_PRICE_CENTS, write_private
+from .config import AUDIT, CONFIG_DIR, MENU_PRICE_CENTS, secret, write_private
 from .errors import ShopError
 
 TZ = ZoneInfo("Europe/Paris")
@@ -26,6 +31,7 @@ ORDERS_OPEN_AT = time(13, 0)  # the day before pickup
 PAID_STATUSES = ("En cours", "Terminée")  # WooCommerce: processing / completed
 _client = None
 _orders_done = 0
+_topups_done = 0
 
 
 def client():
@@ -51,6 +57,20 @@ def _safe(fn):
         except ShopError as e:
             return e.as_result()
     return wrapper
+
+
+def topup_wait():
+    try:
+        return max(30, int(os.environ.get("IZLY_TOPUP_WAIT_S", "300")))
+    except ValueError:
+        return 300
+
+
+def topup_amount():
+    try:
+        return int(os.environ.get("IZLY_TOPUP_EUR", "5"))
+    except ValueError:
+        raise ShopError("bad_topup_amount", "IZLY_TOPUP_EUR must be 5, 10, 15 or 20.")
 
 
 def _opens_at(pickup_iso):
@@ -250,5 +270,33 @@ def order_menu(date: str, plat: str, peripherique_1: str, peripherique_2: str, r
             "message": f"{service.capitalize()} menu for {date} ordered and paid (1.00 EUR), pickup at the Fonderie 11:45-13:30."}
 
 
+@_safe
+def topup_izly(reason: str, dry_run: bool = True) -> dict:
+    """Top up the Izly account with the bank card saved on it (amount and card come from the config).
+    Use it after an order failed with insufficient_funds, and only once the user has agreed to the
+    top-up in this conversation. The bank may need the user's approval in its own app while this runs
+    (up to 5 minutes), so tell the user to expect it BEFORE calling with dry_run=False. dry_run=True
+    (default) only reports what would be done. `reason` is mandatory (audit log). Afterwards, redo the order."""
+    amount, card = topup_amount(), secret("IZLY_TOPUP_CARD")
+    plan = {"amount_eur": amount, "card": card or "first saved card", "wait_s": topup_wait()}
+    if dry_run:
+        _audit({"action": "izly_topup", "plan": plan, "reason": reason, "dry_run": True})
+        return {"ok": True, "dry_run": True, "would": plan}
+    if os.environ.get("CROUSGO_ENABLE_WRITES") != "1":
+        raise ShopError("writes_disabled", "Real actions are disabled (set CROUSGO_ENABLE_WRITES=1).")
+    global _topups_done
+    if _topups_done >= int(os.environ.get("CROUSGO_MAX_TOPUPS", "1")):
+        raise ShopError("budget_exhausted", "Maximum number of top-ups reached for this session.")
+    try:
+        res = izly.topup(amount, card, timeout_s=plan["wait_s"])
+    except ShopError as e:
+        _audit({"action": "izly_topup", "plan": plan, "reason": reason, "ok": False, "code": e.code})
+        raise
+    _topups_done += 1
+    _audit({"action": "izly_topup", "plan": plan, "reason": reason, "ok": True, **res})
+    return {"ok": True, **res,
+            "message": f"Izly topped up by {amount} EUR, balance is now {res['balance_eur']} EUR. Redo the order."}
+
+
 READ_TOOLS = [list_menus, get_cart, get_orders]
-WRITE_TOOLS = [clear_cart, order_menu]
+WRITE_TOOLS = [clear_cart, order_menu, topup_izly]

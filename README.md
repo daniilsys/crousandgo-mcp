@@ -60,7 +60,11 @@ IZLY_PASS=...
 CROUSGO_ENABLE_WRITES=1   # kill switch: real orders are refused unless this is 1
 CROUSGO_MAX_ORDERS=1      # real orders per server process
 CROUSGO_LANG=en           # language of the evening question: en or fr
+IZLY_TOPUP_EUR=5          # top-up amount: 5, 10, 15 or 20 (tool topup_izly)
+IZLY_TOPUP_CARD=2958      # saved card to use (part of its label in Izly); empty = first one
 ```
+
+Top-up: when an order fails with `insufficient_funds`, the agent asks you, then calls `topup_izly`, which uses a card you saved once on mon-espace.izly.fr (Recharger, carte bancaire). Izly requires the bank's strong authentication for card top-ups: approve it in your bank app while the tool waits (`IZLY_TOPUP_WAIT_S`). Then the agent redoes the order.
 
 and log in once: `crousandgo login`. The Izly account must be linked to your Crous & Go account (My account, Connexion à Izly) and funded.
 
@@ -87,9 +91,10 @@ With an agent, just talk to it: *"commande-moi le menu de demain, poulet, fruit 
 | `get_orders` | recent orders with status, what was ordered (plat, side options), pickup date/time/place and an `upcoming` flag |
 | `clear_cart` | empty the cart |
 | `order_menu` | order a menu. `dry_run=True` by default, `reason` is mandatory |
+| `topup_izly` | top up Izly with the saved card after the user agreed; waits for their approval at the bank. `dry_run=True` by default, `reason` is mandatory |
 
 Every tool returns `{ok, ...}`. On `ok: false` there is a stable `code` and an English `message` the agent can relay in your language:
-`insufficient_funds`, `izly_bad_credentials`, `izly_not_linked`, `menu_not_open`, `menu_not_published`, `out_of_stock`, `already_ordered`, `bad_choice`, `unexpected_price`, `payment_not_confirmed`, `session_expired`, `site_unreachable`, `writes_disabled`, `budget_exhausted`.
+`insufficient_funds`, `izly_bad_credentials`, `izly_not_linked`, `menu_not_open`, `menu_not_published`, `out_of_stock`, `already_ordered`, `bad_choice`, `unexpected_price`, `payment_not_confirmed`, `session_expired`, `site_unreachable`, `writes_disabled`, `budget_exhausted`, `topup_card_not_found`, `topup_needs_verification`, `topup_not_confirmed`, `topup_refused`.
 
 ## Safety
 

@@ -33,5 +33,12 @@ Say clearly when there is none.
 3. `order_menu(..., dry_run=True, reason=...)` to validate the choices. Relay `message` on failure
    (a bad choice lists the valid ones).
 4. With the user's go, the same call with `dry_run=False`.
-5. One-line recap: menu, date, pickup, 1,00 EUR paid with Izly. On `insufficient_funds`, tell the user
-   to top up Izly and offer to retry.
+5. One-line recap: menu, date, pickup, 1,00 EUR paid with Izly. On `insufficient_funds`, follow
+   "Not enough Izly balance" below.
+
+## Not enough Izly balance (`insufficient_funds`)
+
+1. Do not top up on your own. Ask the user, in one message: the balance is too low, you can top up Izly by the configured amount with their saved card, and they will have to approve the payment in their bank app. Call `topup_izly` with dry_run=True first if you need to know the amount.
+2. Only after their yes, tell them to watch their phone, then call `topup_izly` with dry_run=False and a short `reason`. It waits up to 5 minutes for their approval at the bank.
+3. On success, redo the same `order_menu` (dry run, then real, same choices). Do not ask the order question again: the user already gave the choices.
+4. On failure relay `message`. `topup_needs_verification` means the approval did not come in time: nothing was charged, offer to try again. After `topup_not_confirmed`, ask the user to check the Izly balance before any retry.
