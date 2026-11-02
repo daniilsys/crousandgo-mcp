@@ -68,18 +68,22 @@ def parse_form(html, cls):
 
 
 def pickup_date(product):
-    """ISO pickup date of a menu product: its DLC attribute, else 'du lundi 2 novembre' in the name."""
+    """ISO pickup date of a menu product: the date in its name ('du lundi 2 novembre'), else its DLC.
+
+    The name comes first because the DLC attribute is a use-by date, not the pickup day: the menu
+    "du mardi 3 novembre" made on 02/11 carries DLC 05/11, and reading the DLC first asked and
+    ordered for the wrong day."""
+    m = re.search(r"(\d{1,2})(?:er)? (" + "|".join(MONTHS) + ")", product["name"].lower())
+    if m:
+        today = date.today()
+        d = date(today.year, MONTHS.index(m.group(2)) + 1, int(m.group(1)))
+        return (d if d >= today else d.replace(year=today.year + 1)).isoformat()
     for attr in product.get("attributes", []):
         if norm(attr["name"]) == "dlc" and attr["terms"]:
             try:
                 return datetime.strptime(attr["terms"][0]["name"], "%d/%m/%Y").date().isoformat()
             except ValueError:
                 pass
-    m = re.search(r"(\d{1,2})(?:er)? (" + "|".join(MONTHS) + ")", product["name"].lower())
-    if m:
-        today = date.today()
-        d = date(today.year, MONTHS.index(m.group(2)) + 1, int(m.group(1)))
-        return (d if d >= today else d.replace(year=today.year + 1)).isoformat()
     return None
 
 

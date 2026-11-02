@@ -3,11 +3,11 @@ import json
 import os
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from crousandgo import tools
-from crousandgo.client import norm, parse_form, pickup_date
+from crousandgo.client import MONTHS, norm, parse_form, pickup_date
 from crousandgo.errors import classify_checkout, classify_izly
 
 MENU = {"product_id": 1, "name": "Menu étudiant à 1€ du lundi 2 novembre", "service": "midi",
@@ -40,10 +40,19 @@ class ParsingTests(unittest.TestCase):
     def test_norm_ignores_accents_and_case(self):
         self.assertEqual(norm("  Petit GÂTEAU  sec"), "petit gateau sec")
 
-    def test_pickup_date_from_dlc_then_name(self):
+    def test_pickup_date_falls_back_to_dlc_when_name_has_no_date(self):
         p = {"name": "x", "attributes": [{"name": "DLC", "terms": [{"name": "02/11/2026"}]}]}
         self.assertEqual(pickup_date(p), "2026-11-02")
         self.assertIsNotNone(pickup_date({"name": "Menu du lundi 2 novembre", "attributes": []}))
+
+    def test_pickup_date_name_wins_over_dlc(self):
+        # Real case: "Menu ... du mardi 3 novembre", made 02/11, DLC (use-by) 05/11.
+        pickup = date.today() + timedelta(days=1)
+        dlc = date.today() + timedelta(days=3)
+        p = {"name": f"Menu étudiant à 1€ du jour {pickup.day} {MONTHS[pickup.month - 1]}",
+             "attributes": [{"name": "Fabrication:", "terms": [{"name": date.today().strftime("%d/%m/%Y")}]},
+                            {"name": "DLC", "terms": [{"name": dlc.strftime("%d/%m/%Y")}]}]}
+        self.assertEqual(pickup_date(p), pickup.isoformat())
 
 
 class ErrorMappingTests(unittest.TestCase):
