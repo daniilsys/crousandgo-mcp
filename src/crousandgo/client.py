@@ -14,7 +14,7 @@ from html.parser import HTMLParser
 import httpx
 
 from . import auth
-from .config import BASE, MENU_CATEGORY, SESSION, SHOP, STORE_API, ZONE_FONDERIE
+from .config import BASE, CROUSTILLANT_API, FONDERIE_CUISINE, MENU_CATEGORY, SESSION, SHOP, STORE_API, ZONE_FONDERIE
 from .errors import ShopError, classify_checkout
 
 MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre",
@@ -147,6 +147,28 @@ class Client:
                 "url": p["add_to_cart"]["url"],
             })
         return out
+
+    def week_menu(self, code=FONDERIE_CUISINE):
+        """Upcoming daily menus from the public CROUStillant API: [{date, midi: [[plat..]], soir: [[..]]}].
+        Formulas are separated by an "OU" entry in the plat list."""
+        r = self._request("GET", f"{CROUSTILLANT_API}/restaurants/{code}/menu")
+        r.raise_for_status()
+        out = []
+        for day in r.json().get("data", []):
+            entry = {"date": datetime.strptime(day["date"][:10], "%d-%m-%Y").date().isoformat()
+                     if day["date"][2] == "-" else day["date"][:10]}
+            for repas in day.get("repas", []):
+                if repas["type"] not in ("midi", "soir") or not repas.get("categories"):
+                    continue
+                formulas = [[]]
+                for pl in sorted(repas["categories"][0].get("plats", []), key=lambda x: x["ordre"]):
+                    if pl["libelle"].strip().upper() == "OU":
+                        formulas.append([])
+                    else:
+                        formulas[-1].append(pl["libelle"])
+                entry[repas["type"]] = [f for f in formulas if f]
+            out.append(entry)
+        return sorted(out, key=lambda d: d["date"])
 
     # ---------- cart ----------
 

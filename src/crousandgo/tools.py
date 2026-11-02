@@ -116,6 +116,17 @@ def list_menus() -> dict:
 
 
 @_safe
+def get_week_menu(days: int = 7) -> dict:
+    """Menu of the week at the Fonderie kitchen (Illberg), from the CROUStillant API: for each upcoming
+    day (from today, up to `days` days), the midi and soir formulas, each a list of plats (formulas are
+    alternatives). No login needed. Not the same as list_menus, which is the orderable 1 EUR menu."""
+    today = datetime.now(TZ).date()
+    limit = (today + timedelta(days=days)).isoformat()
+    return {"ok": True, "days": [d for d in client().week_menu()
+                                 if today.isoformat() <= d["date"] < limit]}
+
+
+@_safe
 def get_cart() -> dict:
     """Current cart of the logged-in user."""
     client().ensure_session()
@@ -298,5 +309,5 @@ def topup_izly(reason: str, dry_run: bool = True) -> dict:
             "message": f"Izly topped up by {amount} EUR, balance is now {res['balance_eur']} EUR. Redo the order."}
 
 
-READ_TOOLS = [list_menus, get_cart, get_orders]
+READ_TOOLS = [list_menus, get_week_menu, get_cart, get_orders]
 WRITE_TOOLS = [clear_cart, order_menu, topup_izly]

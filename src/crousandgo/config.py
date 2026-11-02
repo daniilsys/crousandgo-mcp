@@ -13,6 +13,8 @@ SHOP = "https://crousandgo.crous-strasbourg.fr"
 BASE = SHOP + "/fonderie"
 STORE_API = BASE + "/wp-json/wc/store/v1"
 
+CROUSTILLANT_API = "https://api.croustillant.menu/v1"
+FONDERIE_CUISINE = 1399  # Illberg kitchen, which makes the Fonderie menus
 ZONE_FONDERIE = "4"
 MENU_CATEGORY = "menu-etudiant"
 MENU_PRICE_CENTS = 100  # the 1 EUR meal; anything else is refused
