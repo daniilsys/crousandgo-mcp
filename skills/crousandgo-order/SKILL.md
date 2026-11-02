@@ -3,7 +3,7 @@ name: crousandgo-order
 description: Order the 1 EUR Crous & Go student menu. Use when the user asks about the Crous & Go menu, answers the evening menu question, or wants to order a menu paid with Izly.
 ---
 
-Use the `crousandgo` MCP tools (`list_menus`, `get_cart`, `get_orders`, `clear_cart`, `order_menu`).
+Use the `crousandgo` MCP tools (`list_menus`, `get_week_menu`, `get_cart`, `get_orders`, `clear_cart`, `order_menu`).
 If unavailable, explain how to enable the server and restart the agent. Reply in the user's language
 (French if unsure). Pickup is at the Fonderie (Mulhouse), 11h45-13h30, paid with the user's Izly
 account. One 1 EUR meal per order and per student: midi OR soir, not both. Orders must be validated
@@ -25,6 +25,13 @@ before 08:00 on pickup day.
 pickup date, time and place, and `upcoming` (paid and still to collect). To answer "what is my order"
 or "what do I pick up", report the `upcoming` ones: menu, plat, side options, date, time, place.
 Say clearly when there is none.
+
+## What is on the menu this week?
+
+`get_week_menu(days=7)` is read-only and needs no login. It returns the midi and soir formulas of the
+Fonderie kitchen for the coming days, each formula being a list of plats (formulas are alternatives).
+Use it to answer "what is on the menu this week / tomorrow". It is not orderable: for ordering, use
+`list_menus`, which only has the days open for ordering.
 
 ## Ordering
 

@@ -87,6 +87,7 @@ With an agent, just talk to it: *"commande-moi le menu de demain, poulet, fruit 
 | Tool | |
 |---|---|
 | `list_menus` | published menus, plats, side options, stock, when ordering opens |
+| `get_week_menu` | menu of the coming days (midi/soir formulas) from the public CROUStillant API, no login; not orderable |
 | `get_cart` | current cart |
 | `get_orders` | recent orders with status, what was ordered (plat, side options), pickup date/time/place and an `upcoming` flag |
 | `clear_cart` | empty the cart |
