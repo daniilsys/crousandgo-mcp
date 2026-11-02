@@ -7,7 +7,7 @@ import unittest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-READ = {"list_menus", "get_cart", "get_orders"}
+READ = {"list_menus", "get_week_menu", "get_cart", "get_orders"}
 
 
 class MCPTests(unittest.IsolatedAsyncioTestCase):
