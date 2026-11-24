@@ -151,3 +151,37 @@ def pay(url, timeout_s=90):
             return {"timeout": True}  # unknown outcome: the caller reads the order status
         finally:
             browser.close()
+
+
+def order_pay_fields(html):
+    """Fields of the pay-for-order form (#order_review) with Izly selected.
+
+    Checked boxes and radios only, as a browser would send them. Nothing is paid here: the caller
+    posts these fields to the order-pay URL and gets the Izly authorisation URL back."""
+    m = re.search(r'<form id="order_review".*?</form>', html, re.S)
+    if not m:
+        raise ShopError("checkout_failed", "Pay-for-order form not found on the order page.")
+    fields = {}
+    for tag in re.findall(r"<input[^>]*>", m.group(0)):
+        name = re.search(r'name="([^"]+)"', tag)
+        if not name:
+            continue
+        if re.search(r'type="(checkbox|radio)"', tag) and "checked" not in tag:
+            continue
+        value = re.search(r'value="([^"]*)"', tag)
+        fields[name.group(1)] = value.group(1) if value else ""
+    fields.update({"payment_method": "izlyvl", "terms": "on", "terms-field": "1",
+                   "place_order": "Payer la commande"})
+    return fields
+
+
+def pay_pending_order(http, pay_url):
+    """Submit the pay-for-order form of an existing order and return the Izly authorisation URL.
+
+    This only starts the Izly step: the debit happens on Izly's own page, in pay()."""
+    page = http.get(pay_url)
+    r = http.post(pay_url, data=order_pay_fields(page.text), follow_redirects=False)
+    location = r.headers.get("location", "")
+    if r.status_code not in (301, 302, 303) or "izly" not in location:
+        raise ShopError("checkout_failed", "Crous & Go did not redirect to Izly.", status=r.status_code)
+    return location
