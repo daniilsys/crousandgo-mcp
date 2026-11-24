@@ -117,13 +117,15 @@ class Client:
     def ensure_session(self):
         if self._checked:
             return
+        # Match the <nav> element, not Astra's inline CSS rules referencing .woocommerce-MyAccount-navigation
+        logged_in = lambda html: bool(re.search(r"<nav\b[^>]*\bwoocommerce-MyAccount-navigation\b", html))
         r = self._request("GET", BASE + "/mon-compte/")
-        if "woocommerce-MyAccount-navigation" not in r.text:
+        if not logged_in(r.text):
             auth.login()
             self.http.cookies.clear()
             self._load_cookies()
             r = self._request("GET", BASE + "/mon-compte/")
-            if "woocommerce-MyAccount-navigation" not in r.text:
+            if not logged_in(r.text):
                 raise ShopError("session_expired", "Could not log in to Crous & Go.")
         self._checked = True
 
